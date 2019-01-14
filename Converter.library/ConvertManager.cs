@@ -44,9 +44,10 @@ namespace Converter.library
             Process process = Process.Start(processInfo);
             StreamReader reader = process.StandardError;
             string output = reader.ReadToEnd();
-            Regex r = new Regex("[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9]");
+            Regex r = new Regex("Duration: [0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9]");
             Match matched = r.Match(output);
-            double res = TimeSpan.Parse(matched.Value).TotalSeconds;
+            string duration = matched.Value.Remove(0, 9);
+            double res = TimeSpan.Parse(duration).TotalSeconds;
             process.WaitForExit();
 
             return res;
@@ -97,19 +98,14 @@ namespace Converter.library
         {
             try
             {
-                string[] split = data.Split(' ');
-                foreach (var row in split)
-                {
-                    if (row.StartsWith("time="))
-                    {
-                        var time = row.Split('=');
-                        double renderedTime = TimeSpan.Parse(time[1]).TotalSeconds;
-                        double percentage = Math.Round(renderedTime / _totalTime * 100, 2);
-                        if (percentage > 100)
-                            percentage = 100.00;
-                        ChangePercentage(percentage, filename);
-                    }
-                }
+                Regex r = new Regex("time=[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9]");
+                Match matched = r.Match(data);
+                string duration = matched.Value.Remove(0, 5);
+                double renderedTime = TimeSpan.Parse(duration).TotalSeconds;
+                double percentage = Math.Round(renderedTime / _totalTime * 100, 2);
+                /*if (percentage > 100)
+                    percentage = 100.00;*/
+                ChangePercentage(percentage, filename);
             }
             catch { }
         }

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Converter.library;
 
 namespace Converter.ui
@@ -11,15 +7,15 @@ namespace Converter.ui
     {
         static void Main(string[] args)
         {
-            ConvertManager cm = new ConvertManager(@"C:\foo\test.avi", @"C:\foo");
+            ConvertManager cm = new ConvertManager(@"C:\foo\rr.mov", @"C:\foo");
             cm.PercentageChanged += PercentageChanged;
             cm.Finished += Finished;
             try
             {
-                /*var res = cm.StartConvertWebM();
+                var res = cm.StartConvertWebM();
                 if (res == 1)
-                    Console.WriteLine("Le webm existe déjà => Annulé");*/
-                var res = cm.StartConvertH264();
+                    Console.WriteLine("Le webm existe déjà => Annulé");
+                res = cm.StartConvertH264();
                 if (res == 1)
                     Console.WriteLine("Le mp4 existe déjà => Annulé");
             }
@@ -35,12 +31,12 @@ namespace Converter.ui
 
         public static void PercentageChanged(object obj, PercentageChangedEventArgs args)
         {
-            Console.Write("Conversion... [{0}] {1}    \r", args.Percentage, args.File);
+            Console.Write("Conversion...\t[{0}]\t{1}    \r", args.Percentage, args.File);
         }
 
         public static void Finished(object obj, ConvertionFinishedEventArgs args)
         {
-            Console.WriteLine("\n{0} => Terminé", args.File);
+            Console.WriteLine("Terminé \t[100]\t{0}", args.File);
         }
     }
 }
