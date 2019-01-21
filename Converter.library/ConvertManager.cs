@@ -12,6 +12,10 @@ namespace Converter.library
         private readonly string _output;
         private readonly double _totalTime;
 
+        private readonly bool _trim;
+        private readonly string _begin;
+        private readonly string _end;
+
         public ConvertManager(string inputfile, string outputfolder) :
             this(inputfile, outputfolder, String.Format("{0}",Path.GetFileNameWithoutExtension(inputfile)), true)
         { }
@@ -28,6 +32,9 @@ namespace Converter.library
             _input = inputfile;
             _output = string.Format("{0}{1}{2}", outputfolder, Path.DirectorySeparatorChar, filename);
             _totalTime = GetDuration(inputfile);
+            _trim = true;
+            _begin = "00:00:05";
+            _end = "00:00:35";
         }
 
         private double GetDuration(string inputfile)
@@ -75,12 +82,19 @@ namespace Converter.library
             string filename = String.Format("{0}.{1}", Path.GetFileName(_output), extension);
             var processInfo = new ProcessStartInfo
             {
+                // -ss 01:10:27 -to 02:18:51 
                 UseShellExecute = false, // change value to false
                 FileName = @".\ffmpeg\bin\ffmpeg.exe",
-                Arguments = String.Format("-i {0} -c:v {1} -crf 10 -b:v 1M -c:a {2} {3}.{4}", _input, codecVideo, codecAudio, _output, extension),
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+
+            if (_trim)
+                processInfo.Arguments = String.Format("-i {0} -ss {1} -t {2} -c:v {3} -crf 10 -b:v 1M -c:a {4} {5}.{6}",
+                    _input, _begin, _end, codecVideo, codecAudio, _output, extension);
+            else
+                processInfo.Arguments = String.Format("-i {0} -c:v {1} -crf 10 -b:v 1M -c:a {2} {3}.{4}",
+                    _input, codecVideo, codecAudio, _output, extension);
 
             Process process = Process.Start(processInfo);
 
