@@ -12,9 +12,17 @@ namespace Converter.library
         private readonly string _output;
         private readonly double _totalTime;
 
-        private readonly bool _trim;
+        private readonly bool _trim = false;
         private readonly string _begin;
         private readonly string _end;
+
+        public ConvertManager(string inputfile, string outputfolder, string begin, string end) :
+            this(inputfile, outputfolder, String.Format("{0}", Path.GetFileNameWithoutExtension(inputfile)), true)
+        {
+            _trim = true;
+            _begin = begin;
+            _end = end;
+        }
 
         public ConvertManager(string inputfile, string outputfolder) :
             this(inputfile, outputfolder, String.Format("{0}",Path.GetFileNameWithoutExtension(inputfile)), true)
@@ -32,9 +40,9 @@ namespace Converter.library
             _input = inputfile;
             _output = string.Format("{0}{1}{2}", outputfolder, Path.DirectorySeparatorChar, filename);
             _totalTime = GetDuration(inputfile);
-            _trim = true;
+            /*_trim = true;
             _begin = "00:00:05";
-            _end = "00:00:35";
+            _end = "00:00:35";*/
         }
 
         private double GetDuration(string inputfile)
