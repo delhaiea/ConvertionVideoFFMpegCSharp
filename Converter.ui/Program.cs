@@ -20,6 +20,7 @@ namespace Converter.ui
             string argBeginUser = null, argEndUser = null, argBeginFinal = null, argEndFinal = null;
             bool cutEnable = false;
             bool formatWebm = false, formatMp4 = false;
+            bool Override = false;
             string filePath = null, fileName = null;
             Regex timestampRegex = new Regex("[0-9]{2}:[0-9]{2}:[0-9]{2}$");
 
@@ -70,7 +71,9 @@ namespace Converter.ui
             if(Array.IndexOf(args, "--webm") != -1)
             {
                 formatWebm = true;
-            }else if(Array.IndexOf(args, "--mp4") != -1)
+            }
+
+            if (Array.IndexOf(args, "--mp4") != -1)
             {
                 formatMp4 = true;
             }
@@ -93,6 +96,35 @@ namespace Converter.ui
                 filePath = Directory.GetCurrentDirectory() + '\\' + fileName;
             };
             Console.WriteLine(filePath);
+
+            if (Array.IndexOf(args, "--override") != -1)
+            {
+                Override = true;
+                string pathTemp = filePath.Split('\\')[filePath.Split('\\').Length - 1];
+                string[] filePathDetails = pathTemp.Split('.');
+                string fileNameToDelete = filePathDetails[filePathDetails.Length - 2];
+
+                if (formatMp4)
+                    fileNameToDelete += ".mp4";
+                else if (formatWebm)
+                    fileNameToDelete += ".webm";
+                string filePathToDelete = Directory.GetCurrentDirectory() + '\\' + fileNameToDelete;
+                Console.WriteLine("fpath to delete : {0}", filePathToDelete);
+                if (System.IO.File.Exists(filePathToDelete))
+                {
+                    Console.WriteLine("Le fichier {0} existe déja. Supprestion..", fileNameToDelete);
+                    try
+                    {
+                        System.IO.File.Delete(filePathToDelete);
+                    }
+                    catch(System.IO.IOException e)
+                    {
+                        Console.WriteLine(e.Message);
+                        Environment.Exit(-1);
+                    }
+                    Console.WriteLine("Fichier supprimer..");
+                }
+            }
 
             ConvertManager cm = null;
            
