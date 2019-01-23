@@ -85,7 +85,7 @@ namespace Converter.ui
             Console.WriteLine(filePath);
 
             ConvertManager cm = null;
-            /*
+           
             if (cutEnable)
                 cm = new ConvertManager(filePath, Directory.GetCurrentDirectory(), argBegin, argEnd);
             else
@@ -111,7 +111,7 @@ namespace Converter.ui
             catch(Exception e)
             {
                 Console.WriteLine(e.Message);
-            }*/
+            }
 
 #if DEBUG
             Console.ReadKey();
