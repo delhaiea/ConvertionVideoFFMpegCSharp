@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Converter.library;
 
 namespace Converter.ui
@@ -19,15 +20,15 @@ namespace Converter.ui
 
             string argBeginUser = null, argEndUser = null, argBeginFinal = null, argEndFinal = null;
             bool cutEnable = false;
-            bool formatWebm = false, formatMp4 = false;
+            bool formatWebm = false, formatMp4 = false, doubleFormat = false;
             bool Override = false;
             string filePath = null, fileName = null;
             Regex timestampRegex = new Regex("[0-9]{2}:[0-9]{2}:[0-9]{2}$");
+            string fileNameToDelete = "";
 
 
             if (args[0] == "--help" || args[0] == "-h")
             {
-                Console.WriteLine("Help demander");
                 AfficheHelp();
                 Environment.Exit(0);
             }
@@ -41,15 +42,13 @@ namespace Converter.ui
                     int argPosF = Array.IndexOf(args, "-f");
                     argEndUser = args[argPosF + 1];
                     cutEnable = true;
-                    Console.WriteLine(argBeginUser + " est " + timestampRegex.IsMatch(argBeginUser));
-                    Console.WriteLine(argEndUser + " est " + timestampRegex.IsMatch(argEndUser));
                     if (!timestampRegex.IsMatch(argBeginUser) || !timestampRegex.IsMatch(argEndUser))
                     {
                         Console.WriteLine("Un ou des timestamp sont faux");
                         AfficheHelp();
                         Environment.Exit(0);
                     }
-                    else if( !ValideurSimestamp(argBeginUser, argEndUser) )
+                    else if( !ValideurTimestamp(argBeginUser, argEndUser) )
                     {
                         Console.WriteLine("Le second timestamp est inférieur ou égal au premier.");
                         AfficheHelp();
@@ -78,12 +77,11 @@ namespace Converter.ui
                 formatMp4 = true;
             }
 
-            if(formatMp4 && formatWebm || !formatMp4 && !formatWebm)
+            if ( (Array.IndexOf(args, "--all") != -1) || (Array.IndexOf(args, "--mp4") == -1 && Array.IndexOf(args, "--webm") == -1 ))
             {
-                Console.WriteLine("Double format ou pas de format");
-                AfficheHelp();
-                Environment.Exit(0);
+                doubleFormat = true;
             }
+
 
             fileName = args[args.Length - 1];
 
@@ -95,35 +93,11 @@ namespace Converter.ui
             {
                 filePath = Directory.GetCurrentDirectory() + '\\' + fileName;
             };
-            Console.WriteLine(filePath);
 
             if (Array.IndexOf(args, "--override") != -1)
             {
                 Override = true;
-                string pathTemp = filePath.Split('\\')[filePath.Split('\\').Length - 1];
-                string[] filePathDetails = pathTemp.Split('.');
-                string fileNameToDelete = filePathDetails[filePathDetails.Length - 2];
-
-                if (formatMp4)
-                    fileNameToDelete += ".mp4";
-                else if (formatWebm)
-                    fileNameToDelete += ".webm";
-                string filePathToDelete = Directory.GetCurrentDirectory() + '\\' + fileNameToDelete;
-                Console.WriteLine("fpath to delete : {0}", filePathToDelete);
-                if (System.IO.File.Exists(filePathToDelete))
-                {
-                    Console.WriteLine("Le fichier {0} existe déja. Supprestion..", fileNameToDelete);
-                    try
-                    {
-                        System.IO.File.Delete(filePathToDelete);
-                    }
-                    catch(System.IO.IOException e)
-                    {
-                        Console.WriteLine(e.Message);
-                        Environment.Exit(-1);
-                    }
-                    Console.WriteLine("Fichier supprimer..");
-                }
+                fileNameToDelete = Path.GetFileNameWithoutExtension(filePath);
             }
 
             ConvertManager cm = null;
@@ -135,17 +109,69 @@ namespace Converter.ui
             
             cm.PercentageChanged += PercentageChanged;
             cm.Finished += Finished;
+
             try
             {
+                if (Override)
+                {
+                    if (formatMp4 || doubleFormat)
+                    {
+                        string filePathToDelete = Directory.GetCurrentDirectory() + '\\' + fileNameToDelete + ".mp4";
+                        if (System.IO.File.Exists(filePathToDelete))
+                        {
+                            Console.WriteLine("Le fichier {0} existe déja. Supprestion..", fileNameToDelete+".mp4");
+                            try
+                            {
+                                System.IO.File.Delete(filePathToDelete);
+                            }
+                            catch (System.IO.IOException e)
+                            {
+                                Console.WriteLine(e.Message);
+                                Environment.Exit(-1);
+                            }
+                            Console.WriteLine("Fichier supprimer..");
+                        }
+                    }
+                    if (formatWebm || doubleFormat)
+                    {
+                        string filePathToDelete = Directory.GetCurrentDirectory() + '\\' + fileNameToDelete + ".webm";
+                        if (System.IO.File.Exists(filePathToDelete))
+                        {
+                            Console.WriteLine("Le fichier {0} existe déja. Supprestion..", fileNameToDelete + ".webm");
+                            try
+                            {
+                                System.IO.File.Delete(filePathToDelete);
+                            }
+                            catch (System.IO.IOException e)
+                            {
+                                Console.WriteLine(e.Message);
+                                Environment.Exit(-1);
+                            }
+                            Console.WriteLine("Fichier supprimer..");
+                        }
+                    }
+
+                }
+
                 if (formatWebm)
                 {
                     var res = cm.StartConvertWebM();
                     if (res == 1)
                         Console.WriteLine("Le webm existe déjà => Annulé");
                 }
-                else
+                else if(formatMp4)
                 {
                     var res = cm.StartConvertH264();
+                    if (res == 1)
+                        Console.WriteLine("Le mp4 existe déjà => Annulé");
+                }
+                else
+                {
+                    var res = cm.StartConvertWebM();
+                    if (res == 1)
+                        Console.WriteLine("Le webm existe déjà => Annulé");
+
+                    res = cm.StartConvertH264();
                     if (res == 1)
                         Console.WriteLine("Le mp4 existe déjà => Annulé");
                 }
@@ -162,24 +188,18 @@ namespace Converter.ui
 
         public static void AfficheHelp()
         {
-            Console.WriteLine("Converter --help {-d(timestamp debut) -f(timestamp fin) 00:00:00} {--webm --mp4} nom/chemin vers le fichier");
-            Console.WriteLine("Ex: Converter -d 00:01:10 -f 00:21:10 --webm");
-            Console.WriteLine("Par defaut, convertis toute la video.");
-            Console.WriteLine("Si -d est spécifier, il faut spécifier obligatoirement -f");
-            Console.WriteLine("Il est faut spécifier le format, --webm OU --mp4");
-            //
-            Console.WriteLine("Usage: Converter [OPTIONS]... [FICHIER]...");
+            Console.WriteLine("Usage: Converter [OPTIONS]... [FICHIER]...\n");
+            Console.WriteLine("Liste des arguments: ");
             Console.WriteLine("-d {timestamp} : Spécifie le timestamp a partir duquel la video sera découper. (-f obligatoire)");
             Console.WriteLine("-f {timestamp} : Spécifie le timestamp jusqu'où la video sera découper. (-d obligatoire)");
             Console.WriteLine("--webm : spécifie le format de sortie en webm.");
             Console.WriteLine("--mp4 : spécifie le format de sortie en mp4.");
-            Console.WriteLine("--all : Utiliser pour convertir la vidéo en webm ET mp4. (par défaut)");
+            Console.WriteLine("--all : Utiliser pour convertir la vidéo en webm ET mp4. (par défaut)\n");
             Console.WriteLine("{timestamp} Format : hh:mm:ss");
             Console.WriteLine("FICHIER Le fichier peut être un chemin relatif ou absolue.");
-
         }
 
-        public static bool ValideurSimestamp(string argDebut, string argEnd)
+        public static bool ValideurTimestamp(string argDebut, string argEnd)
         {
             int[] timeSpec = { 3600, 60, 0 };
             string[] args = { argDebut, argEnd };
@@ -224,7 +244,6 @@ namespace Converter.ui
             int argEndFinalSeconds = argsSecondes[1] - argsSecondes[0];
             int[] argEndFinalDetails = { 0, 0, 0 };
             string argEndFinal = "";
-            Console.WriteLine(argEndFinalSeconds);
             while(argEndFinalSeconds >= 3600)
             {
                 argEndFinalDetails[0] += 1;
@@ -236,7 +255,7 @@ namespace Converter.ui
                 argEndFinalDetails[1] += 1;
                 argEndFinalSeconds -= 60;
             }
-
+            
             argEndFinalDetails[2] = argEndFinalSeconds;
 
             if (argEndFinalDetails[0] < 10)
@@ -257,9 +276,6 @@ namespace Converter.ui
                 argEndFinal += '0' + argEndFinalDetails[2].ToString();
             else
                 argEndFinal += argEndFinalDetails[1].ToString();
-#if DEBUG
-            Console.WriteLine("debut {0}, fin {1}, calculer {2} ", argBeginUser, argEndUser, argEndFinal);
-#endif
             return argEndFinal;
         }
 
